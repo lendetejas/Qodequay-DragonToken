@@ -5,12 +5,12 @@ import {
   Button,
   Card,
   CardContent,
-  TextField
+  TextField,
 } from "@material-ui/core";
 import { ethers } from "ethers";
 const App = () => {
   const [contractAddress, setContractAddress] = useState(
-    "0xa620A06C3950C35a418E9B41b53610Fe5F1dB109"
+    "0xdE873C90c88F7b678a67623488a382eA88eb765f"
   );
   const [contractABI, setContractABI] = useState([
     {
@@ -167,8 +167,8 @@ const App = () => {
   const [tokenSymbol, setTokenSymbol] = useState("");
   const [contractTx, setContractTx] = useState("");
   const [loading, setLoading] = useState(false);
-  const [handleOpen, setHandleOpen] = useState(false);
-  const [handleClose, setHandleClose] = useState(false);
+  const [address, setAddress] = useState("");
+  const [walletBalance, setWalletBalance] = useState("");
 
   const handleWalletAddressChange = (e) => {
     setWalletAddress(e.target.value);
@@ -187,13 +187,17 @@ const App = () => {
       await provider.send("eth_requestAccounts", []);
       const signer = provider.getSigner();
       const signature = await signer.signMessage("Welcome Dragon");
+      const address = await signer.getAddress();
       const tx = new ethers.Contract(contractAddress, contractABI, signer);
       setContractTx(tx);
       const name = await tx.name();
       setTokenName(name);
-
       const symbol = await tx.symbol();
       setTokenSymbol(symbol);
+      setAddress(address);
+      const balance = await tx.balanceOf(address);
+      const balanceof = ethers.utils.formatEther(balance);
+      setWalletBalance(balanceof);
     } catch (error) {
       console.log(error);
     }
@@ -202,46 +206,62 @@ const App = () => {
     try {
       if (contractTx) {
         if (walletAddress) {
-          const transferTx = await contractTx.transfer(
-            walletAddress,
-            ethers.utils.parseEther("1000")
-          );
-          setLoading(true);
-          setTimeout(
-            function () {
-              setLoading(false);
-            }.bind(this),
-            20000
-          );
+          if (walletBalance > ethers.utils.parseEther("1000")) {
+            const transferTx = await contractTx.transfer(
+              walletAddress,
+              ethers.utils.parseEther("1000")
+            );
+            console.log(transferTx);
+            setLoading(true);
+            setTimeout(
+              function () {
+                alert("Token Transfer Successfully");
+                setLoading(false);
+              }.bind(this),
+              10000
+            );
+          }
         } else {
-          alert("please Enter Wallet Address")
+          alert("please Enter Wallet Address");
         }
       } else {
-       alert("please connect Wallet")
+        alert("please connect Wallet");
       }
     } catch (error) {
-      console.log(error);
+      // alert("insufficient Balance");
     }
   };
   return (
     <div className='App'>
       <div>
         <div id='button'>
-          <Button
-            variant='contained'
-            color='primary'
-            onClick={connectWallet}
-            style={{ marginTop: 50, marginRight: 100 }}
-          >
-            Connect Wallet
-          </Button>
+          {walletBalance ? (
+            <Button
+              variant='contained'
+              color='primary'
+              onClick={connectWallet}
+              style={{ marginTop: 50, marginRight: 100 }}
+            >
+              {address} <br />
+              Balance: {walletBalance} DTK
+            </Button>
+          ) : (
+            <Button
+              variant='contained'
+              color='primary'
+              onClick={connectWallet}
+              style={{ marginTop: 50, marginRight: 100 }}
+            >
+              Connect Wallet
+            </Button>
+          )}
         </div>
       </div>
       <Card
-      variant="outlined"
+        variant='outlined'
         style={{
           width: "70%",
-          height: ' 30%',
+          height: " 30%",
           marginLeft: "15%",
           marginTop: 50,
           // backgroundColor: "yellow",
@@ -256,10 +276,10 @@ const App = () => {
       </Card>
 
       <Card
-      variant="outlined"
+        variant='outlined'
         style={{
           width: "70%",
-          height: ' 30%',
+          height: " 30%",
           marginLeft: "15%",
           marginTop: 50,
         }}
